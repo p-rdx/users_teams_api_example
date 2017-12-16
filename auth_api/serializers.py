@@ -54,3 +54,22 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('email', 'email_verified', 'first_name', 'last_name', 'team', 'invitation', 'password')
         extra_kwargs = {'password': {'write_only': True}}
+
+
+class PasswordResetInitSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        try:
+            user = CustomUser.objects.get(email__iexact=email)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError('User e-mail is invalid')
+
+        attrs['user'] = user
+        return attrs
+
+
+class PasswordResetExecSerializer(PasswordResetInitSerializer):
+    password = serializers.CharField(style={'input_type': 'password'}, required=True)
+    code = serializers.UUIDField(required=True)
