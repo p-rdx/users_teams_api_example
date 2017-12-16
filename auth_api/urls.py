@@ -1,9 +1,9 @@
 from django.conf.urls import url, include
-from auth_api.views import UserLoginView
+from auth_api import views
 
 
 
 urlpatterns = [
-    url(r'^login/$', UserLoginView.as_view(), name='rest_login'),
-    #url(r'^logout/$', LogoutView.as_view(), name='rest_logout'),
+    url(r'^login/$', views.UserLoginView.as_view(), name='rest_login'),
+    url(r'^logout/$', views.UserLogoutView.as_view(), name='rest_logout'),
 ]
