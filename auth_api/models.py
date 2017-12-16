@@ -109,7 +109,7 @@ class InvitationLink(models.Model):
     """
     code = models.UUIDField(default=uuid4, unique=True)
     user = models.ForeignKey('CustomUser')
-    team = models.ForeignKey('Team')
+    team = models.ForeignKey('Team', null=True, blank=True)
 
     class Meta:
         unique_together = ('user', 'team')
