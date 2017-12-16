@@ -9,11 +9,10 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import login
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from .models import CustomUser, Team
-from .serializers import LoginSerializer, TokenSerializer
+from .serializers import LoginSerializer, TokenSerializer, CustomUserSerializer
 
 
 class UserLoginView(GenericAPIView):
@@ -41,3 +40,13 @@ class UserLogoutView(APIView):
 
         return Response({"detail": _("Successfully logged out.")},
                         status=status.HTTP_200_OK)
+
+
+class WhoamiView(APIView):
+    permission_classes = (IsAuthenticated,)
+    response_serializer = CustomUserSerializer
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.response_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
