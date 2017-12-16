@@ -8,5 +8,6 @@ urlpatterns = [
     url(r'^logout/$', views.UserLogoutView.as_view(), name='rest_logout'),
     url(r'^whoami/$', views.WhoamiView.as_view()),
     url(r'^reset/$', views.PasswordResetInitView.as_view()),
-    url(r'^password/$', views.PasswordResetView.as_view())
+    url(r'^password/$', views.PasswordResetView.as_view()),
+    url(r'^invite/$', views.MakeInvitationLink.as_view()),
 ]

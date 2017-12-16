@@ -11,9 +11,10 @@ from rest_framework.authtoken.models import Token
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from .models import CustomUser, Team
+from .models import CustomUser, Team, InvitationLink
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
-                          PasswordResetInitSerializer, PasswordResetExecSerializer)
+                          PasswordResetInitSerializer, PasswordResetExecSerializer,
+                          TeamSerializer, InvitationSerializer, MakeInvitationSerializer)
 
 
 class UserLoginView(GenericAPIView):
@@ -25,7 +26,7 @@ class UserLoginView(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             user = serializer.validated_data['user']
-            token, _ = Token.objects.get_or_create(user=user)
+            token, created = Token.objects.get_or_create(user=user)
             serializer = self.response_serializer(instance=token, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -94,3 +95,23 @@ class PasswordResetView(PasswordResetGenericView):
                 {'detail': _('Password reset code is incorrect')}, 
                 status=status.HTTP_403_FORBIDDEN
                 )
+
+class MakeInvitationLink(GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = MakeInvitationSerializer
+    response_serializer = InvitationSerializer
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team = serializer.validated_data.get('team', None)
+        if team:
+            if not user.team.filter(pk=team.pk).exists():
+                return Response(
+                {'detail': _('You can not invite to teams you are not participated in')}, 
+                status=status.HTTP_403_FORBIDDEN
+                )
+        invitation, created = InvitationLink.objects.get_or_create(user=user, team=team)
+        out_serializer = self.response_serializer(instance=invitation, context={'request': request})
+        return Response(out_serializer.data, status=status.HTTP_200_OK)

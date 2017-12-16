@@ -4,7 +4,7 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from rest_framework import serializers, exceptions
 from rest_framework.authtoken.models import Token
 
-from .models import CustomUser, Team
+from .models import CustomUser, Team, InvitationLink
 
 
 class LoginSerializer(serializers.Serializer):
@@ -56,6 +56,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
+class InvitationSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only=True)
+    team = TeamSerializer(read_only=True)
+    class Meta:
+        model = InvitationLink
+        fields = ('code', 'user', 'team',)
+
+
 class PasswordResetInitSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
@@ -73,3 +81,19 @@ class PasswordResetInitSerializer(serializers.Serializer):
 class PasswordResetExecSerializer(PasswordResetInitSerializer):
     password = serializers.CharField(style={'input_type': 'password'}, required=True)
     code = serializers.UUIDField(required=True)
+
+
+class MakeInvitationSerializer(serializers.Serializer):
+    team = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        team_name = attrs.get('team')
+        team = None
+        if team_name:
+            try:
+                team = Team.objects.get(name__iexact=team_name)
+            except Team.DoesNotExist:
+                raise serializers.ValidationError("Team with this name doesn't exist")
+            attrs['team'] = team
+        return attrs
+
