@@ -85,6 +85,7 @@ class PasswordResetExecSerializer(PasswordResetInitSerializer):
 
 class MakeInvitationSerializer(serializers.Serializer):
     team = serializers.CharField(required=False)
+    email = serializers.EmailField(required=False)
 
     def validate(self, attrs):
         team_name = attrs.get('team')

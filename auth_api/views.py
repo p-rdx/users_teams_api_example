@@ -106,6 +106,8 @@ class MakeInvitationLink(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         team = serializer.validated_data.get('team', None)
+        email = serializer.validated_data.get('email', None)
+
         if team:
             if not user.team.filter(pk=team.pk).exists():
                 return Response(
@@ -114,4 +116,7 @@ class MakeInvitationLink(GenericAPIView):
                 )
         invitation, created = InvitationLink.objects.get_or_create(user=user, team=team)
         out_serializer = self.response_serializer(instance=invitation, context={'request': request})
+        if email:
+        	pass  # place for sending the email to a person who you want to invite
+
         return Response(out_serializer.data, status=status.HTTP_200_OK)
