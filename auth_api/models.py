@@ -44,8 +44,8 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractUser):
     """
-	Custom user class, authorisation by email address, 
-	no username, many to many team relations
+    Custom user class, authorisation by email address, 
+    no username, many to many team relations
     """
     username = None
     email = models.EmailField(_('email address'), unique=True)
@@ -64,27 +64,30 @@ class CustomUser(AbstractUser):
         verbose_name_plural = 'users'
 
     def __init__(self, *args, **kwargs):
-    	super(CustomUser, self).__init__(*args, **kwargs)
-    	self._email = copy(self.email)
+        super(CustomUser, self).__init__(*args, **kwargs)
+        self._email = copy(self.email)
+        self._password = copy(self.password)
 
     def save(self, *args, **kwargs):
-    	if self.email != self._email:
-    		self.email_verified  = False
-    		self.send_validation_token(self)
-    	super(CustomUser, self).save(*args, **kwargs)
+        if self.email != self._email:
+            self.email_verified  = False
+            self.send_validation_token(self)
+        if self.password != self._password:
+            self.password_reset_code = None
+        super(CustomUser, self).save(*args, **kwargs)
 
     def generate_validation_token(self):
-    	if not self.email_verified :
-    		inp_string = '{}; {}'.format(self.email, self.pk)
-    		return md5(inp_string).hexdigest()
-    	else:
-    		return None
+        if not self.email_verified :
+            inp_string = '{}; {}'.format(self.email, self.pk)
+            return md5(inp_string).hexdigest()
+        else:
+            return None
 
     def send_validation_token(self):
-    	"""
-		This method can be modified for other variants of token sending.
-    	"""
-    	return self.generate_validation_token()
+        """
+        This method can be modified for other variants of token sending.
+        """
+        return self.generate_validation_token()
 
     def password_reset_initiate(self):
         self.password_reset_code = uuid4()
@@ -100,14 +103,14 @@ class Team(models.Model):
 
 
 class InvitationLink(models.Model):
-	"""
-	Since user can be linked to many teams, it is possible to create 
-	an invitation link to each team where user participated
-	"""
-	code = models.UUIDField(default=uuid4, unique=True)
-	user = models.ForeignKey('CustomUser')
-	team = models.ForeignKey('Team')
+    """
+    Since user can be linked to many teams, it is possible to create 
+    an invitation link to each team where user participated
+    """
+    code = models.UUIDField(default=uuid4, unique=True)
+    user = models.ForeignKey('CustomUser')
+    team = models.ForeignKey('Team')
 
-	class Meta:
-		unique_together = ('user', 'team')
+    class Meta:
+        unique_together = ('user', 'team')
 
