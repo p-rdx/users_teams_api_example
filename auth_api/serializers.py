@@ -52,9 +52,11 @@ class CustomUserSerializer(serializers.ModelSerializer):
     team = TeamSerializer(read_only=True, many=True)
     class Meta:
         model = CustomUser
-        fields = ('email', 'email_verified', 'first_name', 'last_name', 'team', 'invitation', 'password')
+        fields = ('email', 'email_verified', 'first_name', 'last_name', 
+                  'team', 'invitation', 'password')
         read_only_fields = ('email_verified',)
-        extra_kwargs = {'password': {'write_only': True}, 'invitation': {'write_only': True}}
+        extra_kwargs = {'password': {'write_only': True}, 
+                        'invitation': {'write_only': True}}
 
     def validate_invitation(self, value):
         invitation = None
@@ -80,6 +82,22 @@ class InvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvitationLink
         fields = ('code', 'user', 'team',)
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    Custom user without password and code
+    """
+    team = TeamSerializer(read_only=True, many=True)
+    
+    class Meta:
+        model = CustomUser
+        fields = ('pk', 'email', 'first_name', 'last_name', 'team', 'email_verified')
+        read_only_fields = ('pk', 'email_verified')
+
+
+class PasswordResetSerializer(serializers.Serializer):  
+    password = serializers.CharField(style={'input_type': 'password'}, required=True)
 
 
 class PasswordResetInitSerializer(serializers.Serializer):

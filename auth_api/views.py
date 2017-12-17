@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView, CreateAPIView
+from rest_framework.generics import GenericAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
@@ -13,9 +13,10 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 
 from .models import CustomUser, Team, InvitationLink, VerificationToken
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
-                          PasswordResetInitSerializer, PasswordResetExecSerializer,
-                          TeamSerializer, InvitationSerializer, MakeInvitationSerializer,
-                          VerifyEmailSerializer)
+                          PasswordResetInitSerializer, PasswordResetSerializer,
+                          PasswordResetExecSerializer, TeamSerializer, 
+                          InvitationSerializer, MakeInvitationSerializer,
+                          VerifyEmailSerializer, UserDetailSerializer)
 
 
 class UserLoginView(GenericAPIView):
@@ -33,13 +34,15 @@ class UserLoginView(GenericAPIView):
         if serializer.is_valid(raise_exception=True):
             user = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
-            serializer = self.response_serializer(instance=token, context={'request': request})
+            serializer = self.response_serializer(instance=token, 
+                              context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserLogoutView(APIView):
     """
     Logout, deletes auth token
+
     returns success/error
     """
     permission_classes = (AllowAny,)
@@ -54,18 +57,19 @@ class UserLogoutView(APIView):
                         status=status.HTTP_200_OK)
 
 
-class WhoamiView(APIView):
+class UserDetailsView(RetrieveUpdateAPIView):
     """
-    Info view, accepts only GET, require authentification
-    Returns current logged user
+    User details
+
+    Allows GET, PUT, POST
+
+    returns user details
     """
     permission_classes = (IsAuthenticated,)
-    response_serializer = CustomUserSerializer
-
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        serializer = self.response_serializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    serializer_class = UserDetailSerializer
+    
+    def get_object(self):
+        return self.request.user
 
 
 class PasswordResetGenericView(GenericAPIView):
@@ -81,7 +85,9 @@ class PasswordResetGenericView(GenericAPIView):
 class PasswordResetInitView(PasswordResetGenericView):
     """
     Initiates a password reset function
+
     recieves e-mail
+
     returns success/error
     """
     serializer_class = PasswordResetInitSerializer
@@ -98,49 +104,66 @@ class PasswordResetInitView(PasswordResetGenericView):
 
 class PasswordResetView(PasswordResetGenericView):
     """
-    Resets a password using password reset code
+    Resets a password using password reset code (not autenticated)
+    or without code (autenticated)
+
     recieves email, new password and password reset code
+
     returns success/error
     """    
-    serializer_class = PasswordResetExecSerializer
+    def get_serializer_class(self):
+        if self.request.user.is_authenticated:
+            return PasswordResetSerializer
+        return PasswordResetExecSerializer
 
     def on_post_action(self, serializer):
-        user = serializer.validated_data['user']
-        code = user.password_reset_code
-        if serializer.validated_data['code'] == code:
+        if self.request.user.is_authenticated:
+            user = self.request.user
             user.set_password(serializer.validated_data['password'])
             user.save()
-            return Response(
-                {'detail': _('Password was sucessfully changed.')}, 
-                status=status.HTTP_202_ACCEPTED
-                )
         else:
-            return Response(
-                {'detail': _('Password reset code is incorrect')}, 
-                status=status.HTTP_403_FORBIDDEN
-                )
+            user = serializer.validated_data['user']
+            code = user.password_reset_code
+            if serializer.validated_data['code'] == code:
+                user.set_password(serializer.validated_data['password'])
+                user.save()
+            else:
+                return Response(
+                    {'detail': _('Password reset code is incorrect')}, 
+                    status=status.HTTP_403_FORBIDDEN
+                    )
+        return Response(
+                    {'detail': _('Password was sucessfully changed.')}, 
+                    status=status.HTTP_202_ACCEPTED
+                    )
+
 
 class RegisterView(GenericAPIView):
     """
     Registers new users
+
     Recieves email, password (required), first name, last name, invitation code (optional)
+
     returns new user params
     """
     permission_classes = (AllowAny,)
     serializer_class = CustomUserSerializer
+    output_serializer = UserDetailSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.create(serializer.validated_data)
-        return Response(self.serializer_class(instance=user).data, status=status.HTTP_200_OK)
+        return Response(self.output_serializer(instance=user).data, status=status.HTTP_200_OK)
 
 
 class MakeInvitationLink(GenericAPIView):
     """
-    View for creating an invitation links and sending them to recipients
+    View for creating an invitation links and sending them to recipients,
     Requires authorisation
+
     Recieves team name and recipient email (both optional)
+
     returns invitation params
     """
     permission_classes = (IsAuthenticated,)
@@ -170,6 +193,7 @@ class MakeInvitationLink(GenericAPIView):
 class CreateTeamView(GenericAPIView):
     """
     Creates new team, requires authentification
+
     returns success/error
     """
     permission_classes = (IsAuthenticated,)
@@ -191,8 +215,9 @@ class CreateTeamView(GenericAPIView):
 class VerifyEmailView(GenericAPIView):
     """
     Verify email using verification token
-    Recieves token
-    verifies email, deletes token
+
+    Recieves token, verifies email, deletes token
+
     returns success/error
     """
     permission_classes = (AllowAny,)
@@ -212,21 +237,21 @@ class VerifyEmailView(GenericAPIView):
 
 
 class RetrieveVerificationCodeView(GenericAPIView):
-	"""
-	! Workaround since no e-mail messaging presented
-	"""
-	permission_classes = (IsAuthenticated,)
+    """
+    ! Workaround since no e-mail messaging presented
+    """
+    permission_classes = (IsAuthenticated,)
 
-	def get(self, request, *args, **kwargs):
-		user = request.user
-		if not user.email_verified:
-			token = VerificationToken.objects.get(user=user)
-			return Response(
-				{'code': token.code.hex}, 
-				status=status.HTTP_200_OK
-				)
-		else:
-			return Response(
-				{'detail': _('E-mail is verified')}, 
-				status=status.HTTP_200_OK
-				)
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if not user.email_verified:
+            token = VerificationToken.objects.get(user=user)
+            return Response(
+                {'code': token.code.hex}, 
+                status=status.HTTP_200_OK
+                )
+        else:
+            return Response(
+                {'detail': _('E-mail is verified')}, 
+                status=status.HTTP_200_OK
+                )
