@@ -74,7 +74,7 @@ class CustomUser(AbstractUser):
     def save(self, *args, **kwargs):
         if self.email != self._email:
             self.email_verified  = False
-            self.send_validation_token(self)
+            self.send_validation_token()
         if self.password != self._password:
             self.password_reset_code = None
         super(CustomUser, self).save(*args, **kwargs)
