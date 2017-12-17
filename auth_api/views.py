@@ -189,23 +189,23 @@ class CreateTeamView(GenericAPIView):
 
 
 class VerifyEmailView(GenericAPIView):
-	"""
-	Verify email using verification token
-	Recieves token
-	verifies email, deletes token
-	returns success/error
-	"""
+    """
+    Verify email using verification token
+    Recieves token
+    verifies email, deletes token
+    returns success/error
+    """
     permission_classes = (AllowAny,)
     serializer_class = VerifyEmailSerializer
 
     def post(self, request, *args, **kwargs):
-    	serializer = self.serializer_class(data=request.data)
-    	serializer.is_valid(raise_exception=True)
-    	token = serializer.validated_data['token']
-    	token.user.email_verified = True
-    	token.user.save()
-    	token.delete()
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+        token.user.email_verified = True
+        token.user.save()
+        token.delete()
         return Response(
-        	{'detail': _('E-mail was verified')},
-        	status=status.HTTP_200_OK
-        	)
+            {'detail': _('E-mail was verified')},
+            status=status.HTTP_200_OK
+            )
