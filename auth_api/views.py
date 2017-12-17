@@ -96,7 +96,21 @@ class PasswordResetView(PasswordResetGenericView):
                 status=status.HTTP_403_FORBIDDEN
                 )
 
+class RegisterView(GenericAPIView):
+    permission_classes = (AllowAny,)
+    serializer_class = CustomUserSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.create(serializer.validated_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class MakeInvitationLink(GenericAPIView):
+    """
+    View for creating an invitation links and sending them to recipients
+    """
     permission_classes = (IsAuthenticated,)
     serializer_class = MakeInvitationSerializer
     response_serializer = InvitationSerializer
@@ -117,6 +131,6 @@ class MakeInvitationLink(GenericAPIView):
         invitation, created = InvitationLink.objects.get_or_create(user=user, team=team)
         out_serializer = self.response_serializer(instance=invitation, context={'request': request})
         if email:
-        	pass  # place for sending the email to a person who you want to invite
+            pass  # place for sending the email to a person who you want to invite
 
         return Response(out_serializer.data, status=status.HTTP_200_OK)

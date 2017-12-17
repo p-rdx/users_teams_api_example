@@ -48,12 +48,30 @@ class TeamSerializer(serializers.ModelSerializer):
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    invitation = serializers.IntegerField(required=False)
+    invitation = serializers.UUIDField(required=False)
     team = TeamSerializer(read_only=True, many=True)
     class Meta:
         model = CustomUser
         fields = ('email', 'email_verified', 'first_name', 'last_name', 'team', 'invitation', 'password')
+        read_only_fields = ('email_verified',)
         extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_invitation(self, value):
+        invitation = None
+        if value:
+            try:
+                invitation = InvitationLink.objects.get(code=value)
+            except InvitationLink.DoesNotExist:
+                raise serializers.ValidationError('invitation code is invalid')
+        return invitation
+
+    def create(self, validated_data):
+        invitation = validated_data.pop('invitation')
+        user = super(CustomUserSerializer, self).create(validated_data)
+        if invitation and invitation.team:
+            user.team.add(invitation.team)
+            user.save()
+        return user
 
 
 class InvitationSerializer(serializers.ModelSerializer):
@@ -84,6 +102,10 @@ class PasswordResetExecSerializer(PasswordResetInitSerializer):
 
 
 class MakeInvitationSerializer(serializers.Serializer):
+    """
+    Team - name of the team
+    """
+
     team = serializers.CharField(required=False)
     email = serializers.EmailField(required=False)
 
