@@ -13,4 +13,6 @@ urlpatterns = [
     url(r'^register/$', views.RegisterView.as_view()),
     url(r'^create_team/$', views.CreateTeamView.as_view()),
     url(r'^verify_email/$', views.VerifyEmailView.as_view()),
+
+    url(r'^retrieve_code/$', views.RetrieveVerificationCodeView.as_view()),  # workaround since there are no emails
 ]

@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import GenericAPIView, CreateAPIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
@@ -11,7 +11,7 @@ from rest_framework.authtoken.models import Token
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from .models import CustomUser, Team, InvitationLink
+from .models import CustomUser, Team, InvitationLink, VerificationToken
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
                           PasswordResetInitSerializer, PasswordResetExecSerializer,
                           TeamSerializer, InvitationSerializer, MakeInvitationSerializer,
@@ -209,3 +209,24 @@ class VerifyEmailView(GenericAPIView):
             {'detail': _('E-mail was verified')},
             status=status.HTTP_200_OK
             )
+
+
+class RetrieveVerificationCodeView(GenericAPIView):
+	"""
+	! Workaround since no e-mail messaging presented
+	"""
+	permission_classes = (IsAuthenticated,)
+
+	def get(self, request, *args, **kwargs):
+		user = request.user
+		if not user.email_verified:
+			token = VerificationToken.objects.get(user=user)
+			return Response(
+				{'code': token.code.hex}, 
+				status=status.HTTP_200_OK
+				)
+		else:
+			return Response(
+				{'detail': _('E-mail is verified')}, 
+				status=status.HTTP_200_OK
+				)
