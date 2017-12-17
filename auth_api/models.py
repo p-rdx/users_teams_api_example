@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.contrib.auth.hashers import make_password
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from copy import copy
@@ -50,13 +49,13 @@ class CustomUser(AbstractUser):
     """
     username = None
     email = models.EmailField(_('email address'), unique=True)
-    password_reset_code = models.UUIDField(null=True)
+    password_reset_code = models.UUIDField(null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = [] 
 
     email_verified = models.BooleanField(default=False, verbose_name='Validation passed')
-    team = models.ManyToManyField('Team')
+    team = models.ManyToManyField('Team', blank=True)
 
     objects = CustomUserManager()
 
