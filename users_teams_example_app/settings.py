@@ -25,7 +25,7 @@ SECRET_KEY = '8$n(m8jz=f8lqh9p61%kg+m1#(!1e1h-1+8jo+=(_vm*=o4&!b'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['young-taiga-15679.herokuapp.com',]
 
 
 # Application definition
