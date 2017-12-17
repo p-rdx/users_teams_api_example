@@ -255,3 +255,20 @@ class RetrieveVerificationCodeView(GenericAPIView):
                 {'detail': _('E-mail is verified')}, 
                 status=status.HTTP_200_OK
                 )
+
+class APIRoot(GenericAPIView):
+    """
+    This demo api have such variants of usage:
+
+    ^api/login/			login
+    ^api/logout/		logout
+    ^api/userdetails/ 	view and change user details (auth)
+    ^api/reset/ 		initiate reset password
+    ^api/password/ 		change password with reset code or with auth
+    ^api/invite/ 		create an invitation link to a team (auth)
+    ^api/register/		register new user 
+    ^api/create_team/ 	create team (auth)
+    ^api/verify_email/  verify e-mail
+    ^api/retrieve_code/ !workaround! retrieve verification code (auth)
+    * (auth) - requires authorisation
+    """
