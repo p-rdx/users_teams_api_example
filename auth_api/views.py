@@ -248,28 +248,32 @@ class VerifyEmailView(GenericAPIView):
 
 class RetrieveCodesView(GenericAPIView):
     """
-    ! Workaround since no e-mail messaging presented
+    Debug only view
+
+    returns email verification code or None
+    and password reset code or None
     """
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
-        details = dict()
-        user = request.user
-        if not user.email_verified:
-            token = VerificationToken.objects.get(user=user)
-            details['email_verified'] = False
-            details['email_code'] = token.code
+        if settings.DEBUG:
+            details = dict()
+            user = request.user
+            if not user.email_verified:
+                token = VerificationToken.objects.get(user=user)
+                details['email_code'] = token.code
+            else:
+                details['email_code'] = None
+            if user.password_reset_code:
+                details['password_reset_code'] = user.password_reset_code
+            else:
+                details['password_reset_code'] = None
+            return Response(
+                    details, 
+                    status=status.HTTP_200_OK
+                    )
         else:
-            details['email_verified'] = True
-            details['email_code'] = None
-        if user.password_reset_code:
-            details['password_reset_code'] = user.password_reset_code
-        else:
-            details['password_reset_code'] = None
-        return Response(
-                details, 
-                status=status.HTTP_200_OK
-                )
+            return Responce({}, status.HTTP_404_NOT_FOUND)
 
 class APIRoot(GenericAPIView):
     """
