@@ -18,6 +18,11 @@ from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer
 
 
 class UserLoginView(GenericAPIView):
+    """
+    Login view
+    Recieves email and password
+    returns auth token
+    """
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
     response_serializer = TokenSerializer
@@ -32,6 +37,10 @@ class UserLoginView(GenericAPIView):
 
 
 class UserLogoutView(APIView):
+    """
+    Logout, deletes auth token
+    returns success/error
+    """
     permission_classes = (AllowAny,)
 
     def post(self, request, *args, **kwargs):
@@ -45,6 +54,10 @@ class UserLogoutView(APIView):
 
 
 class WhoamiView(APIView):
+    """
+    Info view, accepts only GET, require authentification
+    Returns current logged user
+    """
     permission_classes = (IsAuthenticated,)
     response_serializer = CustomUserSerializer
 
@@ -65,6 +78,11 @@ class PasswordResetGenericView(GenericAPIView):
 
 
 class PasswordResetInitView(PasswordResetGenericView):
+    """
+    Initiates a password reset function
+    recieves e-mail
+    returns success/error
+    """
     serializer_class = PasswordResetInitSerializer
 
     def on_post_action(self, serializer):
@@ -78,6 +96,11 @@ class PasswordResetInitView(PasswordResetGenericView):
 
 
 class PasswordResetView(PasswordResetGenericView):
+    """
+    Resets a password using password reset code
+    recieves email, new password and password reset code
+    returns success/error
+    """    
     serializer_class = PasswordResetExecSerializer
 
     def on_post_action(self, serializer):
@@ -97,6 +120,11 @@ class PasswordResetView(PasswordResetGenericView):
                 )
 
 class RegisterView(GenericAPIView):
+    """
+    Registers new users
+    Recieves email, password (required), first name, last name, invitation code (optional)
+    returns new user params
+    """
     permission_classes = (AllowAny,)
     serializer_class = CustomUserSerializer
 
@@ -110,6 +138,9 @@ class RegisterView(GenericAPIView):
 class MakeInvitationLink(GenericAPIView):
     """
     View for creating an invitation links and sending them to recipients
+    Requires authorisation
+    Recieves team name and recipient email (both optional)
+    returns invitation params
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = MakeInvitationSerializer
