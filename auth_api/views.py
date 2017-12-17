@@ -112,13 +112,14 @@ class PasswordResetView(PasswordResetGenericView):
     returns success/error
     """    
     def get_serializer_class(self):
-        if self.request.user.is_authenticated:
+    	user = self.request.user
+        if user and user.is_authenticated:
             return PasswordResetSerializer
         return PasswordResetExecSerializer
 
     def on_post_action(self, serializer):
-        if self.request.user.is_authenticated:
-            user = self.request.user
+        user = self.request.user
+        if user and user.is_authenticated:
             user.set_password(serializer.validated_data['password'])
             user.save()
         else:
@@ -260,15 +261,15 @@ class APIRoot(GenericAPIView):
     """
     This demo api have such variants of usage:
 
-    ^api/login/			login
-    ^api/logout/		logout
-    ^api/userdetails/ 	view and change user details (auth)
-    ^api/reset/ 		initiate reset password
-    ^api/password/ 		change password with reset code or with auth
-    ^api/invite/ 		create an invitation link to a team (auth)
-    ^api/register/		register new user 
-    ^api/create_team/ 	create team (auth)
-    ^api/verify_email/  verify e-mail
-    ^api/retrieve_code/ !workaround! retrieve verification code (auth)
+	^api/login/			login
+	^api/logout/		logout
+	^api/userdetails/ 	view and change user details (auth)
+	^api/reset/ 		initiate reset password
+	^api/password/ 		change password with reset code or with auth
+	^api/invite/ 		create an invitation link to a team (auth)
+	^api/register/		register new user 
+	^api/create_team/ 	create team (auth)
+	^api/verify_email/  verify e-mail
+	^api/retrieve_code/ !workaround! retrieve verification code (auth)
     * (auth) - requires authorisation
     """

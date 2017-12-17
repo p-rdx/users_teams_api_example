@@ -1,5 +1,6 @@
 from django.conf.urls import url, include
 from auth_api import views
+from rest_framework.documentation import include_docs_urls
 
 
 
