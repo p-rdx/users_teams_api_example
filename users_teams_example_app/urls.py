@@ -26,6 +26,6 @@ urlpatterns = staticfiles_urlpatterns()
 urlpatterns += [
     url(r'^admin/', admin.site.urls),
     url(r'^api/', include(api_urls)),
-    #url(r'^$', APIRoot.as_view(), name='homepage'),
+    url(r'^$', APIRoot.as_view(), name='homepage'),
 ]
  
