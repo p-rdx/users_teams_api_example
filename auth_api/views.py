@@ -98,8 +98,7 @@ class PasswordResetInitView(PasswordResetGenericView):
         user = serializer.validated_data['user']
         code = user.password_reset_initiate()
         return Response(
-            {'detail': _('Password reset has been initiated.'),
-            'code': _(code)},                    # This should be changed to sending code by e-mail
+            {'detail': _('Password reset has been initiated.')},
             status=status.HTTP_200_OK
             )
 
