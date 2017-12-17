@@ -1,4 +1,5 @@
 from django.conf.urls import url, include
+from django.conf import settings
 from auth_api import views
 from rest_framework.documentation import include_docs_urls
 
@@ -16,5 +17,10 @@ urlpatterns = [
     url(r'^verify_email/$', views.VerifyEmailView.as_view()),
     url(r'^$', views.APIRoot.as_view()),
 
-    url(r'^retrieve_code/$', views.RetrieveVerificationCodeView.as_view()),  # workaround since there are no emails
+    
 ]
+
+if settings.DEBUG:
+    urlpatterns += [
+        url(r'^retrieve_code/$', views.RetrieveCodesView.as_view()), 
+    ]

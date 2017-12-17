@@ -10,6 +10,8 @@ from rest_framework.authtoken.models import Token
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext, ugettext_lazy as _
+from django.conf import settings
+from django.core import mail
 
 from .models import CustomUser, Team, InvitationLink, VerificationToken
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
@@ -187,7 +189,14 @@ class MakeInvitationLink(GenericAPIView):
         invitation, created = InvitationLink.objects.get_or_create(user=user, team=team)
         out_serializer = self.response_serializer(instance=invitation, context={'request': request})
         if email:
-            pass  # place for sending the email to a person who you want to invite
+            with mail.get_connection() as connection:
+                mail.EmailMessage(
+                    'Join our nice app', 
+                    'Your invitation code is {}'.format(invitation.code), 
+                    settings.EMAIL_FROM, 
+                    [email,],
+                    connection=connection,
+                ).send()  # ToDo abstract with email templates
 
         return Response(out_serializer.data, status=status.HTTP_200_OK)
 
@@ -237,23 +246,28 @@ class VerifyEmailView(GenericAPIView):
             )
 
 
-class RetrieveVerificationCodeView(GenericAPIView):
+class RetrieveCodesView(GenericAPIView):
     """
     ! Workaround since no e-mail messaging presented
     """
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
+        details = dict()
         user = request.user
         if not user.email_verified:
             token = VerificationToken.objects.get(user=user)
-            return Response(
-                {'code': token.code.hex}, 
-                status=status.HTTP_200_OK
-                )
+            details['email_verified'] = False
+            details['email_code'] = token.code
         else:
-            return Response(
-                {'detail': _('E-mail is verified')}, 
+            details['email_verified'] = True
+            details['email_code'] = None
+        if user.password_reset_code:
+            details['password_reset_code'] = user.password_reset_code
+        else:
+            details['password_reset_code'] = None
+        return Response(
+                details, 
                 status=status.HTTP_200_OK
                 )
 
@@ -269,7 +283,7 @@ class APIRoot(GenericAPIView):
 	^api/invite/ 		create an invitation link to a team (auth)
 	^api/register/		register new user 
 	^api/create_team/ 	create team (auth)
-	^api/verify_email/  verify e-mail
-	^api/retrieve_code/ !workaround! retrieve verification code (auth)
+	^api/verify_email/ 	verify e-mail
+	^api/retrieve_code/	!DEBUG=True! retrieve verification codes (auth)
     * (auth) - requires authorisation
     """

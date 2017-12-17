@@ -2,8 +2,10 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from django.core import mail
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import ugettext, ugettext_lazy as _
+from django.conf import settings
 
 from copy import copy
 from hashlib import md5
@@ -33,6 +35,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('email_verified', True)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -85,15 +88,29 @@ class CustomUser(AbstractUser):
             return None
 
     def send_validation_token(self):
-        """
-        This method can be modified for other variants of token sending.
-        """
-        return self.generate_validation_token()
+        token = self.generate_validation_token()
+        if token:
+            with mail.get_connection() as connection:
+                mail.EmailMessage(
+                    'Please validate your email', 
+                    'validation code is {}'.format(token), 
+                    settings.EMAIL_FROM, 
+                    [self.email,],
+                    connection=connection,
+                ).send()
+
 
     def password_reset_initiate(self):
         self.password_reset_code = uuid4()
         self.save()
-        return self.password_reset_code.hex
+        with mail.get_connection() as connection:
+                mail.EmailMessage(
+                    'Password reset code', 
+                    'Password reset code is {}'.format(self.password_reset_code ), 
+                    settings.EMAIL_FROM, 
+                    [self.email,],
+                    connection=connection,
+                ).send()
 
 
 class Team(models.Model):
