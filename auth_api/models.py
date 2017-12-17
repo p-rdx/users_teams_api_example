@@ -123,8 +123,3 @@ class VerificationToken(models.Model):
     """
     code = models.UUIDField(default=uuid4, unique=True)
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
-
-
-
-
-

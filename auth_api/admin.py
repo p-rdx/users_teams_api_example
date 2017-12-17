@@ -15,6 +15,7 @@ class InvitationInLine(admin.TabularInline):
     readonly_fields = ('code', 'team')
     can_delete = False
     can_add = False
+    extra = 0
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):
@@ -26,7 +27,7 @@ class CustomUserAdmin(UserAdmin):
     list_display = ('email', 'first_name', 'last_name', 'email_verified')
     ordering = ('pk',)
     fieldsets = (
-        (None, {'fields': ('email', 'password', 'email_verified')}),
+        (None, {'fields': ('email', 'password', 'email_verified', 'password_reset_code')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', )}),
         (_('Membership'), {'fields': ('team',)}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
@@ -37,8 +38,9 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('email', 'password1', 'password2'),
         }),
     )
-    readonly_fields = ('last_login', 'date_joined')
+    readonly_fields = ('last_login', 'date_joined', 'password_reset_code')
     filter_horizontal = ('team', )
+    inlines = (InvitationInLine, )
 
 
 class UserInLine(admin.TabularInline):
