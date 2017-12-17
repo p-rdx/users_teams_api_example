@@ -1,0 +1,1 @@
+web: gunicorn users_teams_example_app.wsgi --log-file -
