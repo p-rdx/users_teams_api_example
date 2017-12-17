@@ -45,9 +45,7 @@ class CustomUserAdmin(UserAdmin):
 
 class UserInLine(admin.TabularInline):
     model = CustomUser.team.through
-    fields = ('email', 'first_name', 'last_name', 'is_valid')
-    can_delete = False
-    can_add = False
+    extra = 0
     verbose_name_plural = 'Team Members'
 
 
