@@ -10,5 +10,7 @@ urlpatterns = [
     url(r'^reset/$', views.PasswordResetInitView.as_view()),
     url(r'^password/$', views.PasswordResetView.as_view()),
     url(r'^invite/$', views.MakeInvitationLink.as_view()),
-    url(r'^register/$', views.RegisterView.as_view())
+    url(r'^register/$', views.RegisterView.as_view()),
+    url(r'^create_team/$', views.CreateTeamView.as_view()),
+    url(r'^verify_email/$', views.VerifyEmailView.as_view()),
 ]

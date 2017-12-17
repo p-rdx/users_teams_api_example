@@ -14,7 +14,8 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from .models import CustomUser, Team, InvitationLink
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
                           PasswordResetInitSerializer, PasswordResetExecSerializer,
-                          TeamSerializer, InvitationSerializer, MakeInvitationSerializer)
+                          TeamSerializer, InvitationSerializer, MakeInvitationSerializer,
+                          VerifyEmailSerializer)
 
 
 class UserLoginView(GenericAPIView):
@@ -132,7 +133,7 @@ class RegisterView(GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.create(serializer.validated_data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(self.serializer_class(instance=user).data, status=status.HTTP_200_OK)
 
 
 class MakeInvitationLink(GenericAPIView):
@@ -165,3 +166,46 @@ class MakeInvitationLink(GenericAPIView):
             pass  # place for sending the email to a person who you want to invite
 
         return Response(out_serializer.data, status=status.HTTP_200_OK)
+
+class CreateTeamView(GenericAPIView):
+    """
+    Creates new team, requires authentification
+    returns success/error
+    """
+    permission_classes = (IsAuthenticated,)
+    serializer_class = TeamSerializer
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team = serializer.create(serializer.validated_data)
+        user.team.add(team)
+        user.save()
+        return Response(
+            {'detail': _('New team was successfully created')}, 
+            status=status.HTTP_202_ACCEPTED
+            )
+
+
+class VerifyEmailView(GenericAPIView):
+	"""
+	Verify email using verification token
+	Recieves token
+	verifies email, deletes token
+	returns success/error
+	"""
+    permission_classes = (AllowAny,)
+    serializer_class = VerifyEmailSerializer
+
+    def post(self, request, *args, **kwargs):
+    	serializer = self.serializer_class(data=request.data)
+    	serializer.is_valid(raise_exception=True)
+    	token = serializer.validated_data['token']
+    	token.user.email_verified = True
+    	token.user.save()
+    	token.delete()
+        return Response(
+        	{'detail': _('E-mail was verified')},
+        	status=status.HTTP_200_OK
+        	)

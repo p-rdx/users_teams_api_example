@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.hashers import make_password
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from copy import copy
@@ -21,11 +22,11 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('The given email must be set')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        user.set_password(make_password(password))
         user.save(using=self._db)
         return user
 
-    def create_user(self, email=None, password=None, **extra_fields):
+    def create_user(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         return self._create_user(email, password, **extra_fields)
@@ -78,8 +79,9 @@ class CustomUser(AbstractUser):
 
     def generate_validation_token(self):
         if not self.email_verified :
-            inp_string = '{}; {}'.format(self.email, self.pk)
-            return md5(inp_string).hexdigest()
+            existed = VerificationToken.objects.filter(user=self).delete()
+            token = VerificationToken.objects.create(user=self)
+            return token
         else:
             return None
 
@@ -108,9 +110,21 @@ class InvitationLink(models.Model):
     an invitation link to each team where user participated
     """
     code = models.UUIDField(default=uuid4, unique=True)
-    user = models.ForeignKey('CustomUser')
-    team = models.ForeignKey('Team', null=True, blank=True)
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE)
+    team = models.ForeignKey('Team', null=True, blank=True, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = ('user', 'team')
+
+
+class VerificationToken(models.Model):
+    """
+    model stores tokens, which are used to verify an e-mail
+    """
+    code = models.UUIDField(default=uuid4, unique=True)
+    user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
+
+
+
+
 

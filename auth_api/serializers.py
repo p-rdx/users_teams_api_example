@@ -4,7 +4,7 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from rest_framework import serializers, exceptions
 from rest_framework.authtoken.models import Token
 
-from .models import CustomUser, Team, InvitationLink
+from .models import CustomUser, Team, InvitationLink, VerificationToken
 
 
 class LoginSerializer(serializers.Serializer):
@@ -54,7 +54,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('email', 'email_verified', 'first_name', 'last_name', 'team', 'invitation', 'password')
         read_only_fields = ('email_verified',)
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {'password': {'write_only': True}, 'invitation': {'write_only': True}}
 
     def validate_invitation(self, value):
         invitation = None
@@ -66,8 +66,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return invitation
 
     def create(self, validated_data):
-        invitation = validated_data.pop('invitation')
-        user = super(CustomUserSerializer, self).create(validated_data)
+        invitation = validated_data.pop('invitation', None)
+        user = CustomUser.objects.create_user(**validated_data)
         if invitation and invitation.team:
             user.team.add(invitation.team)
             user.save()
@@ -102,10 +102,6 @@ class PasswordResetExecSerializer(PasswordResetInitSerializer):
 
 
 class MakeInvitationSerializer(serializers.Serializer):
-    """
-    Team - name of the team
-    """
-
     team = serializers.CharField(required=False)
     email = serializers.EmailField(required=False)
 
@@ -120,3 +116,15 @@ class MakeInvitationSerializer(serializers.Serializer):
             attrs['team'] = team
         return attrs
 
+
+class VerifyEmailSerializer(serializers.Serializer):
+    code = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        code = attrs.get('code')
+        try:
+            token = VerificationToken.objects.get(code=code)
+        except VerificationToken.DoesNotExist:
+            raise serializers.ValidationError("Verification code is invalid")
+        attrs['token'] = token
+        return attrs
