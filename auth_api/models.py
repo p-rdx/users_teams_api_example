@@ -25,6 +25,7 @@ class CustomUserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        user.generate_validation_token()
         return user
 
     def create_user(self, email, password, **extra_fields):
@@ -72,12 +73,15 @@ class CustomUser(AbstractUser):
         self._password = copy(self.password)
 
     def save(self, *args, **kwargs):
+        send_token = False
         if self.email != self._email:
             self.email_verified  = False
-            self.send_validation_token()
+            send_token = True
         if self.password != self._password:
             self.password_reset_code = None
         super(CustomUser, self).save(*args, **kwargs)
+        if send_token:
+            self.send_validation_token()
 
     def generate_validation_token(self):
         if not self.email_verified :
@@ -93,7 +97,7 @@ class CustomUser(AbstractUser):
             with mail.get_connection() as connection:
                 mail.EmailMessage(
                     'Please validate your email', 
-                    'validation code is {}'.format(token), 
+                    'validation code is {}'.format(token.code), 
                     settings.EMAIL_FROM, 
                     [self.email,],
                     connection=connection,
