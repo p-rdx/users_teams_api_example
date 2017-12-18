@@ -156,7 +156,7 @@ class RegisterView(GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.create(serializer.validated_data)
-        return Response(self.output_serializer(instance=user).data, status=status.HTTP_200_OK)
+        return Response(self.output_serializer(instance=user).data, status=status.HTTP_201_CREATED)
 
 
 class MakeInvitationLink(GenericAPIView):
