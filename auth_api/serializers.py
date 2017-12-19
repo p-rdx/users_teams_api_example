@@ -4,7 +4,7 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from rest_framework import serializers, exceptions
 from rest_framework.authtoken.models import Token
 
-from .models import CustomUser, Team, InvitationLink, VerificationToken
+from .models import CustomUser, Team, Membership, VerificationToken
 
 
 class LoginSerializer(serializers.Serializer):
@@ -62,8 +62,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
         invitation = None
         if value:
             try:
-                invitation = InvitationLink.objects.get(code=value)
-            except InvitationLink.DoesNotExist:
+                invitation = Membership.objects.get(code=value)
+            except Membership.DoesNotExist:
                 raise serializers.ValidationError('invitation code is invalid')
         return invitation
 
@@ -71,16 +71,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         invitation = validated_data.pop('invitation', None)
         user = CustomUser.objects.create_user(**validated_data)
         if invitation and invitation.team:
-            user.team.add(invitation.team)
-            user.save()
+            Membership.objects.create(user=user, team=invitation.team)
         return user
 
 
-class InvitationSerializer(serializers.ModelSerializer):
+class MembershipSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer(read_only=True)
     team = TeamSerializer(read_only=True)
     class Meta:
-        model = InvitationLink
+        model = Membership
         fields = ('code', 'user', 'team',)
 
 

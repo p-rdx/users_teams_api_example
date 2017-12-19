@@ -59,7 +59,7 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = [] 
 
     email_verified = models.BooleanField(default=False, verbose_name='Validation passed')
-    team = models.ManyToManyField('Team', blank=True)
+    team = models.ManyToManyField('Team', blank=True, through='Membership')
 
     objects = CustomUserManager()
 
@@ -124,7 +124,7 @@ class Team(models.Model):
         return self.name
 
 
-class InvitationLink(models.Model):
+class Membership(models.Model):
     """
     Since user can be linked to many teams, it is possible to create 
     an invitation link to each team where user participated

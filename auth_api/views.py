@@ -13,11 +13,11 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from django.conf import settings
 from django.core import mail
 
-from .models import CustomUser, Team, InvitationLink, VerificationToken
+from .models import CustomUser, Team, Membership, VerificationToken
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
                           PasswordResetInitSerializer, PasswordResetSerializer,
                           PasswordResetExecSerializer, TeamSerializer, 
-                          InvitationSerializer, MakeInvitationSerializer,
+                          MembershipSerializer, MakeInvitationSerializer,
                           VerifyEmailSerializer, UserDetailSerializer)
 
 
@@ -159,7 +159,7 @@ class RegisterView(GenericAPIView):
         return Response(self.output_serializer(instance=user).data, status=status.HTTP_201_CREATED)
 
 
-class MakeInvitationLink(GenericAPIView):
+class InvitePerson(GenericAPIView):
     """
     View for creating an invitation links and sending them to recipients,
     Requires authorisation
@@ -170,7 +170,7 @@ class MakeInvitationLink(GenericAPIView):
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = MakeInvitationSerializer
-    response_serializer = InvitationSerializer
+    response_serializer = MembershipSerializer
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -185,7 +185,7 @@ class MakeInvitationLink(GenericAPIView):
                 {'detail': _('You can not invite to teams you are not participated in')}, 
                 status=status.HTTP_403_FORBIDDEN
                 )
-        invitation, created = InvitationLink.objects.get_or_create(user=user, team=team)
+        invitation = Membership.objects.get(user=user, team=team)
         out_serializer = self.response_serializer(instance=invitation, context={'request': request})
         if email:
             with mail.get_connection() as connection:
@@ -213,11 +213,10 @@ class CreateTeamView(GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         team = serializer.create(serializer.validated_data)
-        user.team.add(team)
-        user.save()
+        Membership.objects.create(user=user, team=team)
         return Response(
             {'detail': _('New team was successfully created')}, 
-            status=status.HTTP_202_ACCEPTED
+            status=status.HTTP_201_CREATED
             )
 
 
