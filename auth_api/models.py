@@ -70,16 +70,17 @@ class CustomUser(AbstractUser):
     def __init__(self, *args, **kwargs):
         super(CustomUser, self).__init__(*args, **kwargs)
         self._email = copy(self.email)
-        self._password = copy(self.password)
+        self._set_password = False
 
     def save(self, *args, **kwargs):
         send_token = False
         if self.email != self._email:
             self.email_verified  = False
             send_token = True
-        if self.password != self._password:
+        if self._set_password:
             self.password_reset_code = None
             Token.objects.filter(user=self).delete()  # Delete authorisation token afrer changing a password
+            self._set_password = False
         super(CustomUser, self).save(*args, **kwargs)
         if send_token:
             self.send_validation_token()
@@ -104,7 +105,6 @@ class CustomUser(AbstractUser):
                     connection=connection,
                 ).send()
 
-
     def password_reset_initiate(self):
         self.password_reset_code = uuid4()
         self.save()
@@ -116,6 +116,13 @@ class CustomUser(AbstractUser):
                     [self.email,],
                     connection=connection,
                 ).send()
+
+    def set_password(self, password):
+        """
+        this is the correct way of checking if the password was changed
+        """
+        super(CustomUser, self).set_password(password)
+        self._set_password = True
 
 
 class Team(models.Model):
