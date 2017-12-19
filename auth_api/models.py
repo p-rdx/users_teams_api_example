@@ -6,9 +6,9 @@ from django.core import mail
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django.conf import settings
+from rest_framework.authtoken.models import Token
 
 from copy import copy
-from hashlib import md5
 from uuid import uuid4
 
 
@@ -79,6 +79,7 @@ class CustomUser(AbstractUser):
             send_token = True
         if self.password != self._password:
             self.password_reset_code = None
+            Token.objects.filter(user=self).delete()  # Delete authorisation token afrer changing a password
         super(CustomUser, self).save(*args, **kwargs)
         if send_token:
             self.send_validation_token()
