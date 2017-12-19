@@ -240,7 +240,7 @@ class VerifyEmailView(GenericAPIView):
         token.delete()
         return Response(
             {'detail': _('E-mail was verified')},
-            status=status.HTTP_200_OK
+            status=status.HTTP_202_ACCEPTED
             )
 
 
