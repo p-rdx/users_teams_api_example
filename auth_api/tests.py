@@ -143,8 +143,22 @@ class UserTestCase(APITestCase):
 		self.assertFalse(user.password_reset_code)
 		self.assertFalse(token)  # there is no possibility to access app with old token
 
+	def test_verify_email(self):
+		v_token = VerificationToken.objects.get(user=self.user)
+		url = reverse('verify_email')
+		responce = self.client.post(url, {'code': v_token.code.hex})
+
+		user = CustomUser.objects.get(email=self.email)
+		token = VerificationToken.objects.filter(user=user).first()
+		
+		self.assertTrue(user.email_verified)
+		self.assertEquals(responce.status_code, 202)
+		self.assertFalse(token) 
+
 	def login(self, email, password):
 		self.client.credentials() #cleaning client credentials before login
 		url_login = reverse('login')
 		responce = self.client.post(url_login, {'email': email, 'password': password})
 		return responce
+
+
