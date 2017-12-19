@@ -9,6 +9,7 @@ from django.core import mail
 
 from .models import CustomUser, Team, Membership, VerificationToken
 from rest_framework.authtoken.models import Token
+from uuid import uuid4
 
 
 class UserRegistrationTestCase(APITestCase):
@@ -73,11 +74,13 @@ class UserTestCase(APITestCase):
 		self.email = 'test@case.com'
 		self.password = 'P@ssw0rd'
 		self.user = CustomUser.objects.create_user(self.email, self.password)
-		Token.objects.create(user=self.user)
+		self.token = Token.objects.create(user=self.user)
+		
 
 	def tearDown(self):
 		Token.objects.filter(user=self.user).delete()  #for the case of logout test since token object can be deleted before
 		self.user.delete()
+		self.client.credentials()  #clean credentials
 
 	def test_login(self):
 		url_login = reverse('login')
@@ -93,3 +96,34 @@ class UserTestCase(APITestCase):
 		responce = self.client.post(url_logout)
 		self.assertEqual(responce.status_code, 200)
 		self.assertFalse(Token.objects.filter(user=self.user).exists())
+
+	def test_reset_password(self):
+		# Initiation
+		url_init = reverse('reset password')
+		responce = self.client.post(url_init, {'email': self.email})
+		user = CustomUser.objects.get(email=self.email)
+		code = user.password_reset_code
+		self.assertEquals(responce.status_code, 200)
+		self.assertTrue(code)
+
+		# unauthorised change 
+		url_set = reverse('set password')
+		new_pass = 'N3w_p@$$word'
+		# wrong data
+		responce = self.client.post(url_set, {'email': 'a@a.com', 'password': new_pass, 'code': code})  # email
+		self.assertEquals(responce.status_code, 400)
+		responce = self.client.post(url_set, {'email': self.email, 'password': new_pass, 'code': uuid4().hex})  # code
+		self.assertEquals(responce.status_code, 403)
+		user = CustomUser.objects.get(email=self.email)
+		self.assertTrue(user.password_reset_code)
+
+		responce = self.client.post(url_set, {'email': self.email, 'password': new_pass, 'code': code})
+		user = CustomUser.objects.get(email=self.email)
+		token = Token.objects.filter(user=self.user).first()
+
+		self.assertEquals(responce.status_code, 202)
+		self.assertFalse(user.password_reset_code)
+		self.assertFalse(token)
+
+
+
