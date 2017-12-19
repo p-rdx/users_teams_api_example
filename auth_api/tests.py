@@ -78,6 +78,7 @@ class UserTestCase(APITestCase):
 	def tearDown(self):
 		Token.objects.filter(user=self.user).delete()  #for the case of logout test since token object can be deleted before
 		self.user.delete()
+		Team.objects.all().delete()
 		self.client.credentials()  #clean credentials
 
 	def test_login(self):
@@ -129,8 +130,7 @@ class UserTestCase(APITestCase):
 		url_set = reverse('set password')
 		new_pass = 'N3w_p@$$word'
 		self.user.password_reset_initiate()  # changing a password should remove a password reset code
-		token = Token.objects.get(user=self.user)
-		self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+		self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
 		self.assertTrue(self.user.password_reset_code)
 
 		responce = self.client.post(url_set, {'password': new_pass})
@@ -150,10 +150,24 @@ class UserTestCase(APITestCase):
 
 		user = CustomUser.objects.get(email=self.email)
 		token = VerificationToken.objects.filter(user=user).first()
-		
+
 		self.assertTrue(user.email_verified)
 		self.assertEquals(responce.status_code, 202)
 		self.assertFalse(token) 
+
+	def test_create_team(self):
+		url = reverse('create_team')
+		team_name = 'new team'
+		self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+		responce = self.client.post(url, {'name': team_name})
+		self.assertEquals(responce.status_code, 201)
+
+		self.assertTrue(Team.objects.filter(name=team_name).exists())
+		self.assertTrue(Membership.objects.filter(user=self.user, team__name=team_name))
+		# team already existed
+		responce = self.client.post(url, {'name': team_name})
+		self.assertEquals(responce.status_code, 400)
 
 	def login(self, email, password):
 		self.client.credentials() #cleaning client credentials before login
