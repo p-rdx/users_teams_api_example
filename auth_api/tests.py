@@ -28,7 +28,6 @@ class UserRegistrationTestCase(APITestCase):
 		CustomUser.objects.all().delete()
 		Team.objects.all().delete()
 
-
 	def test_register_user(self): 
 		url = reverse('register')
 		responce = self.client.post(url, {'email': self.email, 'first_name': self.first_name, 
@@ -76,15 +75,13 @@ class UserTestCase(APITestCase):
 		self.user = CustomUser.objects.create_user(self.email, self.password)
 		self.token = Token.objects.create(user=self.user)
 		
-
 	def tearDown(self):
 		Token.objects.filter(user=self.user).delete()  #for the case of logout test since token object can be deleted before
 		self.user.delete()
 		self.client.credentials()  #clean credentials
 
 	def test_login(self):
-		url_login = reverse('login')
-		responce = self.client.post(url_login, {'email': self.email, 'password': self.password})
+		responce = self.login(self.email, self.password)
 		token = Token.objects.get(user=self.user)
 		self.assertEquals(responce.status_code, 200)
 		self.assertEquals(token.key, responce.data['key'])
@@ -123,7 +120,31 @@ class UserTestCase(APITestCase):
 
 		self.assertEquals(responce.status_code, 202)
 		self.assertFalse(user.password_reset_code)
-		self.assertFalse(token)
+		self.assertFalse(token)  # there is no possibility to access app after token
 
+		responce = self.login(self.email, new_pass)  #try to login with new credentials
+		self.assertEquals(responce.status_code, 200)
 
+	def test_change_password(self):
+		url_set = reverse('set password')
+		new_pass = 'N3w_p@$$word'
+		self.user.password_reset_initiate()  # changing a password should remove a password reset code
+		token = Token.objects.get(user=self.user)
+		self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+		self.assertTrue(self.user.password_reset_code)
 
+		responce = self.client.post(url_set, {'password': new_pass})
+
+		user = CustomUser.objects.get(email=self.email)
+		token = Token.objects.filter(user=self.user).first()
+
+		self.assertTrue(user.check_password(new_pass))
+		self.assertEquals(responce.status_code, 202)
+		self.assertFalse(user.password_reset_code)
+		self.assertFalse(token)  # there is no possibility to access app with old token
+
+	def login(self, email, password):
+		self.client.credentials() #cleaning client credentials before login
+		url_login = reverse('login')
+		responce = self.client.post(url_login, {'email': email, 'password': password})
+		return responce
