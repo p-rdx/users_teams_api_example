@@ -13,10 +13,10 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from django.conf import settings
 from django.core import mail
 
-from .models import CustomUser, Team, Membership, VerificationToken
+from .models import Membership, VerificationToken
 from .serializers import (LoginSerializer, TokenSerializer, CustomUserSerializer,
                           PasswordResetInitSerializer, PasswordResetSerializer,
-                          PasswordResetExecSerializer, TeamSerializer, 
+                          PasswordResetExecSerializer, TeamSerializer,
                           MembershipSerializer, MakeInvitationSerializer,
                           VerifyEmailSerializer, UserDetailSerializer)
 
@@ -36,8 +36,8 @@ class UserLoginView(GenericAPIView):
         if serializer.is_valid(raise_exception=True):
             user = serializer.validated_data['user']
             token, created = Token.objects.get_or_create(user=user)
-            serializer = self.response_serializer(instance=token, 
-                              context={'request': request})
+            serializer = self.response_serializer(
+                instance=token, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -69,7 +69,7 @@ class UserDetailsView(RetrieveUpdateAPIView):
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = UserDetailSerializer
-    
+
     def get_object(self):
         return self.request.user
 
@@ -96,7 +96,7 @@ class PasswordResetInitView(PasswordResetGenericView):
 
     def on_post_action(self, serializer):
         user = serializer.validated_data['user']
-        code = user.password_reset_initiate()
+        user.password_reset_initiate()
         return Response(
             {'detail': _('Password reset has been initiated.')},
             status=status.HTTP_200_OK
@@ -111,9 +111,9 @@ class PasswordResetView(PasswordResetGenericView):
     recieves email, new password and password reset code
 
     returns success/error
-    """    
+    """
     def get_serializer_class(self):
-    	user = self.request.user
+        user = self.request.user
         if user and user.is_authenticated:
             return PasswordResetSerializer
         return PasswordResetExecSerializer
@@ -131,11 +131,11 @@ class PasswordResetView(PasswordResetGenericView):
                 user.save()
             else:
                 return Response(
-                    {'detail': _('Password reset code is incorrect')}, 
+                    {'detail': _('Password reset code is incorrect')},
                     status=status.HTTP_403_FORBIDDEN
                     )
         return Response(
-                    {'detail': _('Password was sucessfully changed.')}, 
+                    {'detail': _('Password was sucessfully changed.')},
                     status=status.HTTP_202_ACCEPTED
                     )
 
@@ -182,22 +182,22 @@ class InvitePerson(GenericAPIView):
         if team:
             if not user.team.filter(pk=team.pk).exists():
                 return Response(
-                {'detail': _('You can not invite to teams you are not participated in')}, 
-                status=status.HTTP_403_FORBIDDEN
-                )
+                       {'detail': _('You can not invite to teams you are not participated in')},
+                       status=status.HTTP_403_FORBIDDEN
+                       )
         invitation = Membership.objects.get(user=user, team=team)
         out_serializer = self.response_serializer(instance=invitation, context={'request': request})
         if email:
             with mail.get_connection() as connection:
                 mail.EmailMessage(
-                    'Join our nice app', 
-                    'Your invitation code is {}'.format(invitation.code), 
-                    settings.EMAIL_FROM, 
-                    [email,],
-                    connection=connection,
+                    'Join our nice app',
+                    'Your invitation code is {}'.format(invitation.code),
+                    settings.EMAIL_FROM,
+                    [email, ], connection=connection,
                 ).send()  # ToDo abstract with email templates
 
         return Response(out_serializer.data, status=status.HTTP_200_OK)
+
 
 class CreateTeamView(GenericAPIView):
     """
@@ -215,7 +215,7 @@ class CreateTeamView(GenericAPIView):
         team = serializer.create(serializer.validated_data)
         Membership.objects.create(user=user, team=team)
         return Response(
-            {'detail': _('New team was successfully created')}, 
+            {'detail': _('New team was successfully created')},
             status=status.HTTP_201_CREATED
             )
 
@@ -267,11 +267,11 @@ class RetrieveCodesView(GenericAPIView):
             else:
                 details['password_reset_code'] = None
             return Response(
-                    details, 
-                    status=status.HTTP_200_OK
+                    details, status=status.HTTP_200_OK
                     )
         else:
-            return Responce({}, status.HTTP_404_NOT_FOUND)
+            return Response({}, status.HTTP_404_NOT_FOUND)
+
 
 class APIRoot(GenericAPIView):
     """
@@ -283,7 +283,7 @@ class APIRoot(GenericAPIView):
 	^api/reset/ 		initiate reset password
 	^api/password/ 		change password with reset code or with auth
 	^api/invite/ 		create an invitation link to a team (auth)
-	^api/register/		register new user 
+	^api/register/		register new user
 	^api/create_team/ 	create team (auth)
 	^api/verify_email/ 	verify e-mail
 	^api/retrieve_code/	!DEBUG=True! retrieve verification codes (auth)
